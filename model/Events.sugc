@@ -1,0 +1,25 @@
+#import "org/sugarj/languages/C"
+
+sugar Events {
+	context-free syntax
+	    "events" {EventDec ","}+	-> EventsDec {cons("Events")}
+    	EventName 					-> EventDec {cons("EventDec")}
+    	EventName 		-> Event {cons("NamedEvent")}
+    	CIdentifier		-> EventName
+    	
+    	
+    rules	
+    	desugar-events-decs(|eventsId) :
+    		eventsDec*	-> eventsEnum  	
+    	
+    		with 
+      			enumConst* := <mapconcat(?Events(eventDec*)
+      								   ; <map(event-to-enum-const)> eventDec*)> eventsDec*;	 
+      			eventsEnum := ExtDec(Dec(DecSpecifierSeq([StorageClassSpecifier(Typedef())
+      									      		 ,TypeSpecifier(Enum(EnumSpecifier(None()
+      									      		  								  ,EnumeratorList(enumConst*))))])
+      					 	 		,Some(InitDeclaratorList([Declarator(None(),eventsId)]))))	
+      					 	 		 
+    	event-to-enum-const :
+			EventDec(name)		-> 	EnumeratorConst(name)	
+}

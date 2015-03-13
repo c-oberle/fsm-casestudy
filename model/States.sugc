@@ -1,0 +1,34 @@
+#import "org/sugarj/languages/C"
+
+sugar States {
+	context-free syntax		
+		"initial" "state" StateName 			-> InitialState {cons("InitialState")}
+		"state" StateName "{" Transition* "}" 	-> StateDec {cons("State")}
+
+		CIdentifier -> StateName
+		
+	rules
+		desugar-state-decs(|statesId) :
+    		stateDec*	-> statesEnum
+    	
+    		with
+      			enumConst* := <map(state-to-enum-const)> stateDec*;	
+    			statesEnum := ExtDec(Dec(DecSpecifierSeq([StorageClassSpecifier(Typedef())
+      									  	  ,TypeSpecifier(Enum(EnumSpecifier(None(),EnumeratorList(enumConst*))))])
+      					 	 		,Some(InitDeclaratorList([Declarator(None(),statesId)]))))
+      					 	 		 
+      	state-to-enum-const :
+    		State(name, trans*)	->	EnumeratorConst(name)
+    		
+    	get-init-state-dec(|statesId) :
+    		InitialState(name)	->
+    			Dec(
+                	DecSpecifierSeq([TypeSpecifier(TypedefName(statesId))])
+              	, Some(
+                  	InitDeclaratorList(
+                    	[InitDeclarator(Declarator(None(), Id("state")), PrimaryExpr(name))]
+                  	)
+                  )
+              	)		  					 	 		 		
+		
+}

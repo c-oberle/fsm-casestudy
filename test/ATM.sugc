@@ -1,0 +1,30 @@
+#import "model/Statemachine"
+
+statemachine {
+	initial state Init 
+	
+  	events DoWithdraw, Cancel, PinOK, PinNOK, MoneyTaken, CardTaken, CardRevoked
+  	
+  	action init {
+  		int i = 0;
+  	}
+
+  	state Init {
+    	DoWithdraw => Withdraw
+    	Cancel => Init
+  	} 
+  	state Withdraw { 
+    	PinOK => GiveMoney
+    	PinNOK => RevokeCard
+    	Cancel => Init
+  	}
+  	state GiveMoney {
+    	MoneyTaken => ReturnCard
+  	}
+  	state ReturnCard {
+    	CardTaken => Init
+  	}
+  	state RevokeCard {
+    	CardRevoked => Init
+  	}
+}

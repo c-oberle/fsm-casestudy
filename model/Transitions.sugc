@@ -1,0 +1,9 @@
+#import "org/sugarj/languages/C"
+
+sugar Transitions {
+	context-free syntax
+		TransitionFrom "=>" TransitionTo -> Transition {cons("Transition")}
+    
+    	Event 		-> TransitionFrom
+    	StateName 	-> TransitionTo
+}
