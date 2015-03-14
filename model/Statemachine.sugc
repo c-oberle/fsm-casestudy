@@ -44,14 +44,13 @@ sugar Statemachine {
       					 	 		 
     get-main(|statesId, eventsId) :
     	body@StatemachineBody(init, eventsDec*, actionDec*, stateDec*)	
-    				->	FunDef(DecSpecifierSeq([ret-type])
+    				->	FunDef(DecSpecifierSeq([TypeSpecifier(Int())])
     						 , Declarator(None()
       									, DeclParams(Id("main") , params))
     						 , None()
     						 , Block(Some(BlockItems(block-item*))))
     
     	with
-    		ret-type :=	TypeSpecifier(Int());
     		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())]), None())]);	
     		init-dec := <get-init-state-dec(|statesId)> init;
     		loop := <get-main-loop(|eventsId)> body;
@@ -82,14 +81,11 @@ sugar Statemachine {
     	with
     		cond := Expr([PrimaryExpr(Lit(IntLit("1")))]);
     		eventDec := <get-next-event(|eventsId)>;
-    		case* := <get-state-cases(|eventsDec*, actionDec*)> stateDec*			
+    		case* := <states-to-cases(|eventsDec*, actionDec*)> stateDec*			
                                         
     get-state-case(|eventsDec*, actionDec*) :
     	State(name, trans*)		-> 	
-    		[LabeledStm(
-                      Case(
-                        ConstExpr(PrimaryExpr(name))
-                      , SelectionStm(
+    		CaseDec(name, SelectionStm(
                           Switch(
                             Expr([PrimaryExpr(Id("event"))])
                           , Block(
@@ -101,17 +97,14 @@ sugar Statemachine {
                             )
                           )
                         )
-                      )
-                    )
-    	   , break]
+                      )  
     		
     	with
-    		eventCase* := <flatten-events-decs
-    					 ; mapconcat(get-event-case(|actionDec*))> eventsDec*;
+    		eventCase* := <events-decs-to-cases(|actionDec*)> eventsDec*;
     		break := JumpStm(Break())
     		
     get-event-case(|actionDec*) :	
-    	Event(name)	-> []
+    	Event(name)	-> CaseDec(name, [])
     			                                    
     		
 	strategies		
@@ -130,8 +123,22 @@ sugar Statemachine {
                             )
                           )
                           
-	get-state-cases(|eventsDec*, actionDec*) =
+	states-to-cases(|eventsDec*, actionDec*) =
 		mapconcat(get-state-case(|eventsDec*, actionDec*))
+		
+	events-decs-to-cases(|actionDec*) =
+		flatten-events-decs
+	  ; mapconcat(get-event-case(|actionDec*))	
+	    
+	overlays
+	
+	CaseDec(name, stm) = [LabeledStm(
+                             Case(
+                               ConstExpr(PrimaryExpr(name))
+                             , stm
+                             )
+                           )
+                        , JumpStm(Break())]	    
 		                          				 	 		 			 	  		  
 
 }
