@@ -24,11 +24,11 @@ sugar States {
     		InitialState(name)	->
     			Dec(
                 	DecSpecifierSeq([TypeSpecifier(TypedefName(statesId))])
-              	, Some(
-                  	InitDeclaratorList(
+              	  , Some(
+                  	 InitDeclaratorList(
                     	[InitDeclarator(Declarator(None(), Id("state")), PrimaryExpr(name))]
-                  	)
-                  )
-              	)		  					 	 		 		
+                  	  )
+                    )
+              	 )		  					 	 		 		
 		
 }

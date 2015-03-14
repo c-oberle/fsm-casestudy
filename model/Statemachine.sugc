@@ -17,7 +17,7 @@ sugar Statemachine {
 	desugarings
     	desugar-statemachine
 
-  rules
+  	rules
   
     desugar-statemachine :
       	Statemachine(body@StatemachineBody(init, eventsDec*, actionDec*, stateDec*)) 
@@ -54,12 +54,12 @@ sugar Statemachine {
     		ret-type :=	TypeSpecifier(Int());
     		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())]), None())]);	
     		init-dec := <get-init-state-dec(|statesId)> init;
-    		loop := <get-main-loop> body;
+    		loop := <get-main-loop(|eventsId)> body;
     		block-item* := [init-dec, loop]
     		
 	
               
-    get-main-loop :
+    get-main-loop(|eventsId) :
     	StatemachineBody(_, eventsDec*, actionDec*, stateDec*)
     		-> 
     		IterationStm(
@@ -69,7 +69,7 @@ sugar Statemachine {
                         , SelectionStm(
                             Switch(
                               Expr([PrimaryExpr(Id("state"))])
-                            , Block(Some(BlockItems([case*])))
+                            , Block(Some(BlockItems(case*)))
                             )
                           )
                         ]
@@ -81,7 +81,57 @@ sugar Statemachine {
                    
     	with
     		cond := Expr([PrimaryExpr(Lit(IntLit("1")))]);
-    		eventDec := [];
-    		case* := []				 	 		 			 	  		  
+    		eventDec := <get-next-event(|eventsId)>;
+    		case* := <get-state-cases(|eventsDec*, actionDec*)> stateDec*			
+                                        
+    get-state-case(|eventsDec*, actionDec*) :
+    	State(name, trans*)		-> 	
+    		[LabeledStm(
+                      Case(
+                        ConstExpr(PrimaryExpr(name))
+                      , SelectionStm(
+                          Switch(
+                            Expr([PrimaryExpr(Id("event"))])
+                          , Block(
+                              Some(
+                                BlockItems(
+                                  eventCase*
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+    	   , break]
+    		
+    	with
+    		eventCase* := <flatten-events-decs
+    					 ; mapconcat(get-event-case(|actionDec*))> eventsDec*;
+    		break := JumpStm(Break())
+    		
+    get-event-case(|actionDec*) :	
+    	Event(name)	-> []
+    			                                    
+    		
+	strategies		
+	
+    get-next-event(|eventsId) =
+    				!Dec(
+                            DecSpecifierSeq([TypeSpecifier(TypedefName(eventsId))])
+                          , Some(
+                              InitDeclaratorList(
+                                [ InitDeclarator(
+                                    Declarator(None(), Id("event"))
+                                  , Call(PrimaryExpr(Id("readEvent")), None())
+                                  )
+                                ]
+                              )
+                            )
+                          )
+                          
+	get-state-cases(|eventsDec*, actionDec*) =
+		mapconcat(get-state-case(|eventsDec*, actionDec*))
+		                          				 	 		 			 	  		  
 
 }

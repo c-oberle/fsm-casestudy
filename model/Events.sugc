@@ -2,9 +2,8 @@
 
 sugar Events {
 	context-free syntax
-	    "events" {EventDec ","}+	-> EventsDec {cons("Events")}
-    	EventName 					-> EventDec {cons("EventDec")}
-    	EventName 		-> Event {cons("NamedEvent")}
+	    "events" {Event ","}+	-> EventsDec {cons("EventsDec")}
+    	EventName 				-> Event {cons("Event")}
     	CIdentifier		-> EventName
     	
     	
@@ -13,13 +12,18 @@ sugar Events {
     		eventsDec*	-> eventsEnum  	
     	
     		with 
-      			enumConst* := <mapconcat(?Events(eventDec*)
-      								   ; <map(event-to-enum-const)> eventDec*)> eventsDec*;	 
+      			enumConst* := <flatten-events-decs
+      						 ; map(event-to-enum-const)> eventsDec*;	 
       			eventsEnum := ExtDec(Dec(DecSpecifierSeq([StorageClassSpecifier(Typedef())
       									      		 ,TypeSpecifier(Enum(EnumSpecifier(None()
       									      		  								  ,EnumeratorList(enumConst*))))])
       					 	 		,Some(InitDeclaratorList([Declarator(None(),eventsId)]))))	
       					 	 		 
     	event-to-enum-const :
-			EventDec(name)		-> 	EnumeratorConst(name)	
+			Event(name)		-> 	EnumeratorConst(name)	
+				
+			
+	strategies
+		flatten-events-decs = 
+			mapconcat(\ EventsDec(events) -> events \)		
 }

@@ -3,15 +3,15 @@
 statemachine {
 	initial state Init 
 
-  	events InsertMoney, Cancel, PinOK, PinNOK, MoneyTaken, CardTaken, CardRevoked
+  	events InsertCoin, Abort, PinOK, PinNOK, MoneyTaken, CardTaken, CardRevoked
   	
   	action init {
-  		
+  		int i = 0;
   	}
 
   	state Init {
-    	DoWithdraw => Withdraw
-    	Cancel => Init
+    	InsertCoin => Withdraw
+    	Abort => Init
   	} 
   	state Withdraw { 
     	PinOK => GiveMoney
