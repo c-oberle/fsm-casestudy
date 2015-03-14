@@ -47,6 +47,8 @@ int main(void)
             /* Increase the station number */
             stationNumber++;
             break;
+          default:
+          	break; 
         }
         break;
  

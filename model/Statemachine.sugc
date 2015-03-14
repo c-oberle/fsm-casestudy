@@ -59,7 +59,7 @@ sugar Statemachine {
 	
               
     get-main-loop(|eventsId) :
-    	StatemachineBody(_, eventsDec*, actionDec*, stateDec*)
+    	StatemachineBody(_, _, _, stateDec*)
     		-> 
     		IterationStm(
                 While(cond
@@ -81,9 +81,9 @@ sugar Statemachine {
     	with
     		cond := Expr([PrimaryExpr(Lit(IntLit("1")))]);
     		eventDec := <get-next-event(|eventsId)>;
-    		case* := <states-to-cases(|eventsDec*, actionDec*)> stateDec*			
+    		case* := <states-to-cases> stateDec*			
                                         
-    get-state-case(|eventsDec*, actionDec*) :
+    state-to-case :
     	State(name, trans*)		-> 	
     		CaseDec(name, SelectionStm(
                           Switch(
@@ -100,11 +100,20 @@ sugar Statemachine {
                       )  
     		
     	with
-    		eventCase* := <events-decs-to-cases(|actionDec*)> eventsDec*;
+    		eventCase* := <transitions-to-cases> trans*;
     		break := JumpStm(Break())
     		
-    get-event-case(|actionDec*) :	
-    	Event(name)	-> CaseDec(name, [])
+    trans-to-case :
+    	Transition(Event(eventName), stateName)
+    		-> CaseDec(eventName, stm*) 
+    		
+    	with
+    		change-state := ExprStm(Some(Expr(
+                              [Assign(PrimaryExpr(Id("state"))
+                                    , AssignOp()
+                                    , PrimaryExpr(stateName))])));  
+                               
+    		stm* := [change-state]			
     			                                    
     		
 	strategies		
@@ -123,12 +132,13 @@ sugar Statemachine {
                             )
                           )
                           
-	states-to-cases(|eventsDec*, actionDec*) =
-		mapconcat(get-state-case(|eventsDec*, actionDec*))
+	states-to-cases =
+		mapconcat(state-to-case)
 		
-	events-decs-to-cases(|actionDec*) =
-		flatten-events-decs
-	  ; mapconcat(get-event-case(|actionDec*))	
+	transitions-to-cases =
+		mapconcat(trans-to-case)	
+	  ;	!(<id>, [LabeledStm(Default(JumpStm(Break())))])
+	  ; conc	
 	    
 	overlays
 	
