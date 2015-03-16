@@ -3,22 +3,69 @@
 sugar States {
 	context-free syntax		
 		"initial" "state" StateName 			-> InitialState {cons("InitialState")}
-		"state" StateName "{" Transition* "}" 	-> StateDec {cons("State")}
+		"state" StateName "{" StateBody "}" 	-> StateDec {cons("State")}
+		Entry? Exit? Transition*				-> StateBody {cons("StateBody")}
+		
+		"enter"	CCompoundStm -> Entry {cons("StateEntry")}
+		"exit"	CCompoundStm -> Exit {cons("StateExit")}
 
 		CIdentifier -> StateName
 		
 	rules
 		desugar-state-decs(|statesId) :
-    		stateDec*	-> statesEnum
+    		stateDec*	-> [statesEnum, stateFuns]
     	
     		with
-      			enumConst* := <map(state-to-enum-const)> stateDec*;	
-    			statesEnum := ExtDec(Dec(DecSpecifierSeq([StorageClassSpecifier(Typedef())
-      									  	  ,TypeSpecifier(Enum(EnumSpecifier(None(),EnumeratorList(enumConst*))))])
-      					 	 		,Some(InitDeclaratorList([Declarator(None(),statesId)]))))
+      			statesEnum := <state-decs-to-enum(|statesId)> stateDec*;
+      			stateFuns := <mapconcat(get-state-funs)> stateDec*
+      			
+      	state-decs-to-enum(|statesId) :
+      		stateDec*	-> 	
+      			ExtDec(Dec(
+            			DecSpecifierSeq(
+              				[ StorageClassSpecifier(Typedef())
+              				, TypeSpecifier(
+                  				Enum(
+                    				EnumSpecifier(
+                      				  None()
+                    				, EnumeratorList(enumConst*)
+                    				)
+                  				  )
+                			    )
+              				  ]
+            			    )
+          			  , Some(InitDeclaratorList([Declarator(None(), statesId)]))
+          			  )		
+          			) 	
+      					 	 		 
+      		with
+      			enumConst* := <map(state-to-enum-const)> stateDec*			 	 		 	
+      			
+      	get-state-funs :
+      		state@State(_, _) -> [entry-fun, exit-fun]
+      		
+      		with
+      			entry-fun := <state-to-entry-fun> state;
+      			exit-fun := <state-to-exit-fun> state		
+      			
+      	state-to-entry-fun :
+      		State(name, StateBody(entry, _, _))	
+      			-> VoidFun(fun-name, block)
+      		
+      		with
+      			fun-name := <get-entry-fun-id> name;
+      			block := <state-entry-to-block> entry
+      			
+     	state-to-exit-fun :
+      		State(name, StateBody(_, exit, _))	
+      			-> VoidFun(fun-name, block)
+      		
+      		with
+      			fun-name := <get-exit-fun-id> name;
+      			block := <state-exit-to-block> exit					
       					 	 		 
       	state-to-enum-const :
-    		State(name, trans*)	->	EnumeratorConst(name)
+    		State(name, _)	->	EnumeratorConst(name)
     		
     	get-init-state-dec(|statesId) :
     		InitialState(name)	->
@@ -29,6 +76,37 @@ sugar States {
                     	[InitDeclarator(Declarator(None(), Id("state")), PrimaryExpr(name))]
                   	  )
                     )
-              	 )		  					 	 		 		
+              	 )	
+              	 
+	strategies
+		state-entry-to-block =
+			(?Some(StateEntry(stm)); !stm)
+      	  <+ empty-block
+      	  
+      	state-exit-to-block =
+			(?Some(StateExit(stm)); !stm)
+      	  <+ empty-block 
+      	  
+      	empty-block = 
+      		!Block(None()) 
+      		
+      	get-state-fun-id(|prefix) =
+      		?Id(name)	
+      	  ; !Id(<conc-strings> (prefix, "_", name))	
+      	
+      	get-entry-fun-id =
+      		get-state-fun-id(|"enter")
+      		
+      	get-exit-fun-id =
+      		get-state-fun-id(|"exit")		
+      		
+  	overlays
+  		VoidFun(name, block) = 
+  				FunDef(
+      				DecSpecifierSeq([TypeSpecifier(Void())])
+    			  , Declarator(None(), DeclIds(name, None()))
+    			  , None()
+   				  , block
+  				)    		        	 	  					 	 		 		
 		
 }

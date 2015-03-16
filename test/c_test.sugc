@@ -15,7 +15,7 @@ typedef enum {
  
 EVENTS readEventFromMessageQueue(void);
 
-int testFun() {
+void testFun() {
 	
 }
  
@@ -26,6 +26,8 @@ int main(void)
   STATES state = ST_RADIO;
   int stationNumber = 0;
   int trackNumber = 0;
+  
+  testFun();
  
   /* Infinite loop */
   while(1)

@@ -7,12 +7,11 @@ sugar Statemachine {
 	%%	   https://github.com/seba--/sugarj/blob/master/case-studies/statemachine/src/statemachine/Metamodel.sugj
 	context-free syntax
 		Statemachine -> ToplevelDeclaration
-		"statemachine" "{" StatemachineBody "}" 		-> Statemachine {cons("Statemachine")}
-		InitialState EventsDec* ActionDec* StateDec* 	-> StatemachineBody {cons("StatemachineBody")}
+		"statemachine" "{" StatemachineBody "}" -> Statemachine {cons("Statemachine")}
+		StatemachineInit EventsDec* StateDec* 	-> StatemachineBody {cons("StatemachineBody")}
 		
-    	CIdentifier -> ActionName
-    	"action" ActionName CCompoundStm		-> ActionDec {cons("Action")}
-
+		InitialState InitStm?	-> StatemachineInit {cons("StatemachineInit")}
+		"data" CCompoundStm 	-> InitStm {cons("InitStm")}
 		
 	desugarings
     	desugar-statemachine
@@ -20,50 +19,46 @@ sugar Statemachine {
   	rules
   
     desugar-statemachine :
-      	Statemachine(body@StatemachineBody(init, eventsDec*, actionDec*, stateDec*)) 
+      	Statemachine(body@StatemachineBody(_, eventsDec*, stateDec*)) 
       		-> <conc> ([statesEnum, eventsEnum]
-      				  , actions
+      				  , stateFuns
       				  , [main])
       	
       	with
-      		statesId := Id("STATES");
-      		eventsId := Id("EVENTS");
-      		statesEnum 	:= <desugar-state-decs(|statesId)> 	stateDec*;
+      		statesId := Id("State");
+      		eventsId := Id("Event");
+      		[statesEnum, stateFuns] := <desugar-state-decs(|statesId)> 	stateDec*;
       		eventsEnum 	:= <desugar-events-decs(|eventsId)> eventsDec*;
-      		actions := <map(desugar-action-dec)> actionDec*;
-      		main 	:= <get-main(|statesId, eventsId)> 	body	
-      	
-      					 	 		 
-    desugar-action-dec :
-    	Action(name, block)	->	FunDef(
-      								DecSpecifierSeq([TypeSpecifier(Int())])
-    							  , Declarator(None(), DeclIds(name, None()))
-    							  , None()
-    							  , block
-   							    )				 	 		 	
+      		main 	:= <get-main(|statesId, eventsId)> 	body	     				 	 		 	
       					 	 		 
     get-main(|statesId, eventsId) :
-    	body@StatemachineBody(init, eventsDec*, actionDec*, stateDec*)	
-    				->	FunDef(DecSpecifierSeq([TypeSpecifier(Int())])
+    	body@StatemachineBody(init
+    						, eventsDec*
+    						, stateDec*)	
+    				->	
+    					FunDef(DecSpecifierSeq([TypeSpecifier(Int())])
     						 , Declarator(None()
       									, DeclParams(Id("main") , params))
     						 , None()
-    						 , Block(Some(BlockItems(block-item*))))
+    						 , StmBlock(block-item*))
     
     	with
-    		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())]), None())]);	
-    		init-dec := <get-init-state-dec(|statesId)> init;
+    		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())])
+    										 , None())]);	
+    		start-dec := <get-arguments;Hd
+    					; get-init-state-dec(|statesId)> init;
     		loop := <get-main-loop(|eventsId)> body;
-    		block-item* := [init-dec, loop]
+    		init-stm* := <get-init-stms> init;
+    		block-item* :=  <conc> (init-stm*, [start-dec, loop])
     		
 	
               
     get-main-loop(|eventsId) :
-    	StatemachineBody(_, _, _, stateDec*)
+    	StatemachineBody(_, _, stateDec*)
     		-> 
     		IterationStm(
                 While(cond
-                	, Block(Some(BlockItems(
+                	, StmBlock(
                         [ eventDec
                         , SelectionStm(
                             Switch(
@@ -75,8 +70,6 @@ sugar Statemachine {
                       )
                     )
                   )
-                )
-              )
                    
     	with
     		cond := Expr([PrimaryExpr(Lit(IntLit("1")))]);
@@ -84,7 +77,8 @@ sugar Statemachine {
     		case* := <states-to-cases> stateDec*			
                                         
     state-to-case :
-    	State(name, trans*)		-> 	
+    	State(name, StateBody(_, _, trans*))		
+    		-> 	
     		CaseDec(name, SelectionStm(
                           Switch(
                             Expr([PrimaryExpr(Id("event"))])
@@ -100,23 +94,32 @@ sugar Statemachine {
                       )  
     		
     	with
-    		eventCase* := <transitions-to-cases> trans*;
+    		eventCase* := <transitions-to-cases(|name)> trans*;
     		break := JumpStm(Break())
     		
-    trans-to-case :
-    	Transition(Event(eventName), stateName)
-    		-> CaseDec(eventName, stm*) 
+    trans-to-case(|fromState) :
+    	Transition(Event(eventName), toState)
+    		-> CaseDec(eventName
+    				 , StmBlock([exit, change-state, entry])) 
     		
     	with
     		change-state := ExprStm(Some(Expr(
                               [Assign(PrimaryExpr(Id("state"))
                                     , AssignOp()
-                                    , PrimaryExpr(stateName))])));  
-                               
-    		stm* := [change-state]			
+                                    , PrimaryExpr(toState))]))); 
+            
+    		exitId 	:= <get-exit-fun-id> fromState;
+    		entryId := <get-entry-fun-id> toState;
+    		exit  := CallStm(exitId);
+    		entry := CallStm(entryId)				
     			                                    
     		
 	strategies		
+	
+	get-init-stms =
+		(?StatemachineInit(_, Some(InitStm(StmBlock(stms))))
+	    ; !stms)
+	   <+ ![]
 	
     get-next-event(|eventsId) =
     				!Dec(
@@ -135,8 +138,8 @@ sugar Statemachine {
 	states-to-cases =
 		mapconcat(state-to-case)
 		
-	transitions-to-cases =
-		mapconcat(trans-to-case)	
+	transitions-to-cases(|exit) =
+		mapconcat(trans-to-case(|exit))	
 	  ;	!(<id>, [LabeledStm(Default(JumpStm(Break())))])
 	  ; conc	
 	    
@@ -148,7 +151,12 @@ sugar Statemachine {
                              , stm
                              )
                            )
-                        , JumpStm(Break())]	    
-		                          				 	 		 			 	  		  
+                        , JumpStm(Break())]
+                          
+    StmBlock(stms) = Block(Some(BlockItems(stms)))	 
+    
+    CallStm(fun) = ExprStm(
+                	Some(Expr([Call(PrimaryExpr(fun), None())]))
+              	   )                         				 	 		 			 	  		  
 
 }

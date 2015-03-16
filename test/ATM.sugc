@@ -3,11 +3,9 @@
 statemachine {
 	initial state Init 
 	
+	data { int i = 0; }
+	
   	events DoWithdraw, Cancel, PinOK, PinNOK, MoneyTaken, CardTaken, CardRevoked
-  	
-  	action init {
-  		int i = 0;
-  	}
 
   	state Init {
     	DoWithdraw => Withdraw

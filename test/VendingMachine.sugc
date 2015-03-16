@@ -1,30 +1,31 @@
 #import "model/Statemachine"
+#include <stdio.h>
 
 statemachine {
-	initial state Init 
-
-  	events InsertCoin, Abort, PinOK, PinNOK, MoneyTaken, CardTaken, CardRevoked
-  	
-  	action init {
-  		int i = 0;
+	initial state Idle 
+	
+	data {
+  		int coins = 0;
+  		int productsSold = 0;
   	}
 
-  	state Init {
-    	InsertCoin => Withdraw
-    	Abort => Init
+  	events InsertCoin, Abort, Confirm, TakeProduct
+
+  	state Idle {
+  		enter { printf("Enter state 'Idle'.\n"); }
+  		exit { printf("Exit state 'Idle'.\n"); }
+    	InsertCoin => CoinInserted
+    	Abort => Idle
   	} 
-  	state Withdraw { 
-    	PinOK => GiveMoney
-    	PinNOK => RevokeCard
-    	Cancel => Init
+  	state CoinInserted { 
+  		enter { coins++; }
+  		Confirm => GiveProduct
+  		InsertCoin => CoinInserted
+    	Abort => Idle
   	}
-  	state GiveMoney {
-    	MoneyTaken => ReturnCard
+  	state GiveProduct {
+  		enter { productsSold++; }
+    	TakeProduct => Idle
   	}
-  	state ReturnCard {
-    	CardTaken => Init
-  	}
-  	state RevokeCard {
-    	CardRevoked => Init
-  	}
+
 }
