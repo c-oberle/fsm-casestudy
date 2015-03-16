@@ -1,0 +1,16 @@
+#import "org/sugarj/languages/C"
+
+sugar Data {
+	context-free syntax
+		"data" "{" CDeclaration* "}" -> Data {cons("Data")}
+		
+	rules	
+		to-ext-dec :
+			dec@Dec(_, _) -> ExtDec(dec)	
+			
+	strategies
+		desugar-data-dec =
+			(?Some(Data(decs)); !decs
+			; map(to-ext-dec))
+		  <+ ![]			
+}

@@ -1,6 +1,7 @@
 #import "model/Events"
 #import "model/States"
 #import "model/Transitions"
+#import "model/Data"
 
 sugar Statemachine {
 	%% Syntax based on:
@@ -10,8 +11,8 @@ sugar Statemachine {
 		"statemachine" "{" StatemachineBody "}" -> Statemachine {cons("Statemachine")}
 		StatemachineInit EventsDec* StateDec* 	-> StatemachineBody {cons("StatemachineBody")}
 		
-		InitialState InitStm?	-> StatemachineInit {cons("StatemachineInit")}
-		"data" CCompoundStm 	-> InitStm {cons("InitStm")}
+		InitialState Data? InitStm?	-> StatemachineInit {cons("StatemachineInit")}
+		"init" CCompoundStm  -> InitStm {cons("InitStm")}
 		
 	desugarings
     	desugar-statemachine
@@ -19,8 +20,11 @@ sugar Statemachine {
   	rules
   
     desugar-statemachine :
-      	Statemachine(body@StatemachineBody(_, eventsDec*, stateDec*)) 
+      	Statemachine(body@StatemachineBody(StatemachineInit(_, data, _)
+      									 , eventsDec*
+      									 , stateDec*)) 
       		-> <conc> ([statesEnum, eventsEnum]
+      				  , dataDecs
       				  , stateFuns
       				  , [main])
       	
@@ -29,10 +33,11 @@ sugar Statemachine {
       		eventsId := Id("Event");
       		[statesEnum, stateFuns] := <desugar-state-decs(|statesId)> 	stateDec*;
       		eventsEnum 	:= <desugar-events-decs(|eventsId)> eventsDec*;
+      		dataDecs := <desugar-data-dec> data;
       		main 	:= <get-main(|statesId, eventsId)> 	body	     				 	 		 	
       					 	 		 
     get-main(|statesId, eventsId) :
-    	body@StatemachineBody(init
+    	body@StatemachineBody(StatemachineInit(strt, _, init)
     						, eventsDec*
     						, stateDec*)	
     				->	
@@ -45,13 +50,10 @@ sugar Statemachine {
     	with
     		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())])
     										 , None())]);	
-    		start-dec := <get-arguments;Hd
-    					; get-init-state-dec(|statesId)> init;
+    		start-dec := <get-init-state-dec(|statesId)> strt;
     		loop := <get-main-loop(|eventsId)> body;
     		init-stm* := <get-init-stms> init;
-    		block-item* :=  <conc> (init-stm*, [start-dec, loop])
-    		
-	
+    		block-item* :=  <conc> (init-stm*, [start-dec, loop])   		
               
     get-main-loop(|eventsId) :
     	StatemachineBody(_, _, stateDec*)
@@ -117,7 +119,7 @@ sugar Statemachine {
 	strategies		
 	
 	get-init-stms =
-		(?StatemachineInit(_, Some(InitStm(StmBlock(stms))))
+		(?Some(InitStm(StmBlock(stms)))
 	    ; !stms)
 	   <+ ![]
 	

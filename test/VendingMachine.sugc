@@ -5,8 +5,12 @@ statemachine {
 	initial state Idle 
 	
 	data {
-  		int coins = 0;
-  		int productsSold = 0;
+		int coins = 0;
+		int productsSold = 0;
+	}
+	
+	init {
+  		printf("Initialize\n");
   	}
 
   	events InsertCoin, Abort, Confirm, TakeProduct
