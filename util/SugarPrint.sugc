@@ -18,7 +18,7 @@ sugar SugarPrint {
             where
             	chars := <explode-string> seq;
             	size := <length> chars;
-            	trimmed := <take(<subti> (size, 1))
+            	trimmed := <take(<dec> size)
             			  ; implode-string> chars;
             	newline := "\\n\"";
             	seq' := <conc-strings> (trimmed, newline)
