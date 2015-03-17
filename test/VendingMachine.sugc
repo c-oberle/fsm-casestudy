@@ -33,18 +33,22 @@ statemachine {
 
   	state Idle {
   		enter { 
+  			println("--------------------------------");
   			println("=> Idle");
   			coins = 0; 
   			println("Coins: %d", coins); 
+  			println("--------------------------------");
   		}
     	InsertCoin => CoinInserted
     	Abort => Idle
   	} 
   	state CoinInserted { 
   		enter { 
+  			println("--------------------------------");
   			println("=> CoinInserted"); 
   			coins++; 
-  			println("Coins: %d", coins); 
+  			println("Coins: %d", coins);
+  			println("--------------------------------"); 
   		}
   		Confirm => GiveProduct
   		InsertCoin => CoinInserted
@@ -52,12 +56,14 @@ statemachine {
   	}
   	state GiveProduct {
   		enter { 
+  			println("--------------------------------");
   			println("=> GiveProduct"); 
   			productsSold++; 
   			coins--;
   			println("Products sold: ... %d", productsSold); 
   			println("Change: .......... %d coins", coins);
   			coins = 0;
+  			println("--------------------------------");
   		}
     	TakeProduct => Idle
   	}
