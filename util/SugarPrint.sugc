@@ -1,0 +1,26 @@
+#import "org/sugarj/languages/C"
+
+#include <stdio.h>
+
+sugar SugarPrint {
+		
+	desugarings
+		desugar-println
+		
+	rules
+		desugar-println :
+			Call(PrimaryExpr(Id("println"))
+                , Some(Expr([PrimaryExpr(StringLitSeq([seq])) | args])))
+                  			->		
+            Call(PrimaryExpr(Id("printf"))
+                , Some(Expr([PrimaryExpr(StringLitSeq([seq'])) | args])))
+                  
+            where
+            	chars := <explode-string> seq;
+            	size := <length> chars;
+            	trimmed := <take(<subti> (size, 1))
+            			  ; implode-string> chars;
+            	newline := "\\n\"";
+            	seq' := <conc-strings> (trimmed, newline)
+													
+} 

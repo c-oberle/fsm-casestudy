@@ -1,0 +1,19 @@
+#import "org/sugarj/languages/C"
+
+sugar Input {
+	context-free syntax
+		"input"	CCompoundStm -> Input {cons("Input")}
+		
+	rules
+		input-to-fun :
+			Input(block) -> 
+				FunDef(
+      				DecSpecifierSeq([TypeSpecifier(TypedefName(Id("Event")))])
+    			  , Declarator(None(), DeclIds(<input-id>, None()))
+    			  , None()
+   				  , block
+  				)
+  				
+  	strategies
+  		input-id = !Id("readEvent")			
+}

@@ -2,17 +2,18 @@
 #import "model/States"
 #import "model/Transitions"
 #import "model/Data"
+#import "model/Input"
+#import "model/Init"
+#import "editor/Editor"
 
 sugar Statemachine {
 	%% Syntax based on:
-	%%	   https://github.com/seba--/sugarj/blob/master/case-studies/statemachine/src/statemachine/Metamodel.sugj
+	%%	   https://github.com/seba--/sugarj/blob/master/case-studies/statemachine/
 	context-free syntax
 		Statemachine -> ToplevelDeclaration
 		"statemachine" "{" StatemachineBody "}" -> Statemachine {cons("Statemachine")}
 		StatemachineInit EventsDec* StateDec* 	-> StatemachineBody {cons("StatemachineBody")}
-		
-		InitialState Data? InitStm?	-> StatemachineInit {cons("StatemachineInit")}
-		"init" CCompoundStm  -> InitStm {cons("InitStm")}
+		InitialState Data? InitStm? Input		-> StatemachineInit {cons("StatemachineInit")}
 		
 	desugarings
     	desugar-statemachine
@@ -20,24 +21,23 @@ sugar Statemachine {
   	rules
   
     desugar-statemachine :
-      	Statemachine(body@StatemachineBody(StatemachineInit(_, data, _)
+      	Statemachine(body@StatemachineBody(StatemachineInit(_, data, _, input)
       									 , eventsDec*
       									 , stateDec*)) 
       		-> <conc> ([statesEnum, eventsEnum]
       				  , dataDecs
-      				  , stateFuns
-      				  , [main])
+      				  , stateFuns 
+      				  , [inputFun, main])
       	
       	with
-      		statesId := Id("State");
-      		eventsId := Id("Event");
-      		[statesEnum, stateFuns] := <desugar-state-decs(|statesId)> 	stateDec*;
-      		eventsEnum 	:= <desugar-events-decs(|eventsId)> eventsDec*;
+      		[statesEnum, stateFuns] := <desugar-state-decs> stateDec*;
+      		eventsEnum 	:= <desugar-events-decs> eventsDec*;
       		dataDecs := <desugar-data-dec> data;
-      		main 	:= <get-main(|statesId, eventsId)> 	body	     				 	 		 	
+      		inputFun := <input-to-fun> input;
+      		main 	:= <get-main> body	     				 	 		 	
       					 	 		 
-    get-main(|statesId, eventsId) :
-    	body@StatemachineBody(StatemachineInit(strt, _, init)
+    get-main :
+    	body@StatemachineBody(StatemachineInit(strt, _, init, _)
     						, eventsDec*
     						, stateDec*)	
     				->	
@@ -50,12 +50,12 @@ sugar Statemachine {
     	with
     		params := ParamList([ParamDecAbstr(DecSpecifierSeq([TypeSpecifier(Void())])
     										 , None())]);	
-    		start-dec := <get-init-state-dec(|statesId)> strt;
-    		loop := <get-main-loop(|eventsId)> body;
+    		start-dec := <get-init-state-dec> strt;
+    		loop := <get-main-loop> body;
     		init-stm* := <get-init-stms> init;
     		block-item* :=  <conc> (init-stm*, [start-dec, loop])   		
               
-    get-main-loop(|eventsId) :
+    get-main-loop :
     	StatemachineBody(_, _, stateDec*)
     		-> 
     		IterationStm(
@@ -75,7 +75,7 @@ sugar Statemachine {
                    
     	with
     		cond := Expr([PrimaryExpr(Lit(IntLit("1")))]);
-    		eventDec := <get-next-event(|eventsId)>;
+    		eventDec := <get-next-event>;
     		case* := <states-to-cases> stateDec*			
                                         
     state-to-case :
@@ -116,21 +116,16 @@ sugar Statemachine {
     		entry := CallStm(entryId)				
     			                                    
     		
-	strategies		
+	strategies	
 	
-	get-init-stms =
-		(?Some(InitStm(StmBlock(stms)))
-	    ; !stms)
-	   <+ ![]
-	
-    get-next-event(|eventsId) =
+    get-next-event =
     				!Dec(
-                            DecSpecifierSeq([TypeSpecifier(TypedefName(eventsId))])
+                            DecSpecifierSeq([TypeSpecifier(TypedefName(<events-id>))])
                           , Some(
                               InitDeclaratorList(
                                 [ InitDeclarator(
                                     Declarator(None(), Id("event"))
-                                  , Call(PrimaryExpr(Id("readEvent")), None())
+                                  , Call(PrimaryExpr(<input-id>), None())
                                   )
                                 ]
                               )

@@ -1,0 +1,15 @@
+#import "org/sugarj/languages/C"
+
+sugar Init {
+	context-free syntax
+		"init" CCompoundStm  -> InitStm {cons("InitStm")}
+		
+	strategies
+		get-init-stms =
+			(?Some(InitStm(StmBlock(stms)))
+	       ; !stms)
+	   	  <+ ![]	
+	   	  
+	overlays
+		StmBlock(stms) = Block(Some(BlockItems(stms)))	   	  
+}

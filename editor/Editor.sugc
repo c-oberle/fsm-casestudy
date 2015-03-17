@@ -1,0 +1,11 @@
+#import "org/sugarj/languages/C"
+
+sugar Editor {
+	folding
+		StateDec
+		Entry
+		Exit
+		Data
+		Input
+		InitStm
+}

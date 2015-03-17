@@ -8,22 +8,27 @@ sugar Events {
     	
     	
     rules	
-    	desugar-events-decs(|eventsId) :
+    	desugar-events-decs :
     		eventsDec*	-> eventsEnum  	
     	
     		with 
       			enumConst* := <flatten-events-decs
       						 ; map(event-to-enum-const)> eventsDec*;	 
       			eventsEnum := ExtDec(Dec(DecSpecifierSeq([StorageClassSpecifier(Typedef())
-      									      		 ,TypeSpecifier(Enum(EnumSpecifier(None()
-      									      		  								  ,EnumeratorList(enumConst*))))])
-      					 	 		,Some(InitDeclaratorList([Declarator(None(),eventsId)]))))	
+      									      	  ,TypeSpecifier(
+      									      	   	Enum(EnumSpecifier(
+      									      	   		None()
+      									      		  , EnumeratorList(enumConst*))))])
+      					 	 	 		, Some(InitDeclaratorList(
+      					 	 	 		  	[Declarator(None(),<events-id>)]))))	
       					 	 		 
     	event-to-enum-const :
 			Event(name)		-> 	EnumeratorConst(name)	
 				
 			
 	strategies
+		events-id = !Id("Event")	
+
 		flatten-events-decs = 
 			mapconcat(\ EventsDec(events) -> events \)		
 }

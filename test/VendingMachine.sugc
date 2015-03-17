@@ -1,5 +1,5 @@
 #import "model/Statemachine"
-#include <stdio.h>
+#import "util/SugarPrint"
 
 statemachine {
 	initial state Idle 
@@ -9,27 +9,56 @@ statemachine {
 		int productsSold = 0;
 	}
 	
-	init {
-  		printf("Initialize\n");
-  	}
+	init { 
+		println("--------Start simulation--------");
+		println("Initial State: Idle"); 
+		println("Events:"); 
+		println("0: InsertCoin"); 
+		println("1: Abort"); 
+		println("2: Confirm"); 
+		println("3: TakeProduct");
+		println("--------------------------------");  
+	}
+	
+	input {
+		Event e = -1;
+		while(e < 0 || e > 3) {
+			printf("Please enter an event: ");
+			scanf("%d", &e);
+		}
+		return e;	
+	}
 
   	events InsertCoin, Abort, Confirm, TakeProduct
 
   	state Idle {
-  		enter { printf("Enter state 'Idle'.\n"); }
-  		exit { printf("Exit state 'Idle'.\n"); }
+  		enter { 
+  			println("=> Idle");
+  			coins = 0; 
+  			println("Coins: %d", coins); 
+  		}
     	InsertCoin => CoinInserted
     	Abort => Idle
   	} 
   	state CoinInserted { 
-  		enter { coins++; }
+  		enter { 
+  			println("=> CoinInserted"); 
+  			coins++; 
+  			println("Coins: %d", coins); 
+  		}
   		Confirm => GiveProduct
   		InsertCoin => CoinInserted
     	Abort => Idle
   	}
   	state GiveProduct {
-  		enter { productsSold++; }
+  		enter { 
+  			println("=> GiveProduct"); 
+  			productsSold++; 
+  			coins--;
+  			println("Products sold: ... %d", productsSold); 
+  			println("Change: .......... %d coins", coins);
+  			coins = 0;
+  		}
     	TakeProduct => Idle
   	}
-
 }

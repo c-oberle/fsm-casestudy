@@ -12,14 +12,14 @@ sugar States {
 		CIdentifier -> StateName
 		
 	rules
-		desugar-state-decs(|statesId) :
+		desugar-state-decs :
     		stateDec*	-> [statesEnum, stateFuns]
     	
     		with
-      			statesEnum := <state-decs-to-enum(|statesId)> stateDec*;
+      			statesEnum := <state-decs-to-enum> stateDec*;
       			stateFuns := <mapconcat(get-state-funs)> stateDec*
       			
-      	state-decs-to-enum(|statesId) :
+      	state-decs-to-enum :
       		stateDec*	-> 	
       			ExtDec(Dec(
             			DecSpecifierSeq(
@@ -34,7 +34,7 @@ sugar States {
                 			    )
               				  ]
             			    )
-          			  , Some(InitDeclaratorList([Declarator(None(), statesId)]))
+          			  , Some(InitDeclaratorList([Declarator(None(), <states-id>)]))
           			  )		
           			) 	
       					 	 		 
@@ -67,10 +67,10 @@ sugar States {
       	state-to-enum-const :
     		State(name, _)	->	EnumeratorConst(name)
     		
-    	get-init-state-dec(|statesId) :
+    	get-init-state-dec :
     		InitialState(name)	->
     			Dec(
-                	DecSpecifierSeq([TypeSpecifier(TypedefName(statesId))])
+                	DecSpecifierSeq([TypeSpecifier(TypedefName(<states-id>))])
               	  , Some(
                   	 InitDeclaratorList(
                     	[InitDeclarator(Declarator(None(), Id("state")), PrimaryExpr(name))]
@@ -79,6 +79,8 @@ sugar States {
               	 )	
               	 
 	strategies
+		states-id = !Id("State")
+	
 		state-entry-to-block =
 			(?Some(StateEntry(stm)); !stm)
       	  <+ empty-block
