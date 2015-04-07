@@ -1,3 +1,5 @@
+/* this example is based on:
+ * https://github.com/seba--/sugarj/blob/master/case-studies/statemachine/src/statemachine/test/ATM.sugj */
 #import "model/Statemachine"
 
 statemachine {
